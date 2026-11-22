@@ -1,9 +1,16 @@
 import type { Product, ProductListParams, ProductListResponse } from "./types";
 
 function getBaseUrl(): string {
-  const url = process.env.NEXT_PUBLIC_API_URL;
+  // Server-rendered pages run inside the frontend container, so they must
+  // reach the backend through the Compose service name. Browser requests run
+  // on the host and therefore use the publicly reachable host URL.
+  const url =
+    typeof window === "undefined"
+      ? process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL
+      : process.env.NEXT_PUBLIC_API_URL;
+
   if (!url) {
-    throw new Error("NEXT_PUBLIC_API_URL is not defined");
+    throw new Error("An API URL is not configured");
   }
   // Ensure trailing slash so that relative paths append correctly.
   return url.endsWith("/") ? url : url + "/";

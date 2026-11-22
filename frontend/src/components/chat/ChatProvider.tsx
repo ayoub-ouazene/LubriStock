@@ -36,7 +36,10 @@ type ChatContextValue = {
 
 const ChatContext = createContext<ChatContextValue | null>(null);
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+const API_URL =
+  typeof window === "undefined"
+    ? process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? ""
+    : process.env.NEXT_PUBLIC_API_URL ?? "";
 
 async function createSession(): Promise<SessionRecord> {
   const res = await fetch(`${API_URL}/chat/session`, { method: "POST" });

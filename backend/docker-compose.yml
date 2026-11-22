@@ -1,18 +1,15 @@
 services:
   backend:
     build: .
-    image: autolube-api:dev
-    container_name: autolube-api
+    image: lubristock-backend:dev
+    container_name: lubristock-backend
     ports:
       - "8000:8000"
       
     env_file:
       - .env
-    volumes:
-      - ./app:/app/app
-      - ./scripts:/app/scripts
-      - ./tests:/app/tests
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    # Run the built image without host bind mounts or reload watchers.
+    # This keeps the container stable on Docker Desktop for Windows.
     restart: unless-stopped
 
 

@@ -1,10 +1,10 @@
-# AutoLube
+# LubriStock
 
-Monorepo for the AutoLube oil and lubricant shop.
+Monorepo for the LubriStock oil and lubricant shop.
 
 - `backend/` — FastAPI backend and AI assistant
-- `frontend/` — customer-facing web app (scaffold)
-- `Reports/` — project documentation and notes
+- `frontend/` — customer-facing Next.js web app
+- `docker-compose.yml` — runs the backend and frontend together
 
 ## Project structure
 
@@ -18,8 +18,8 @@ Monorepo for the AutoLube oil and lubricant shop.
 │   ├── .env          Local configuration (create this file)
 │   ├── alembic.ini
 │   └── requirements.txt
-├── frontend/         Customer-facing app scaffold
-├── Reports/          Project reports
+├── frontend/         Customer-facing Next.js app
+├── docker-compose.yml Runs frontend and backend together
 └── README.md
 ```
 
@@ -38,8 +38,17 @@ The API includes:
 
 ## Requirements
 
+For Docker usage:
+
+- Docker Desktop with Docker Compose v2.
+- Access to the configured Neon PostgreSQL database.
+- Backend provider credentials in `backend/.env`.
+
+For running without Docker:
+
 - Python 3.10 or newer.
 - PostgreSQL, configured with a `postgresql+psycopg://` database URL.
+- Node.js 20.9 or newer.
 - Groq credentials for the assistant. OpenRouter keys can be configured for model failover.
 - Tavily API key for search fallback; DDGS is also used as a search provider.
 - Cloudinary credentials are optional and only needed for image uploads.
@@ -101,9 +110,60 @@ CLOUDINARY_API_SECRET=
 
 `GROQ_KEYS` and `OPENROUTER_KEYS` are comma-separated key pools used by model failover. Keep `backend/.env` private; it is ignored by Git.
 
+## Run the complete project with Docker (recommended)
+
+From the repository root, create `backend/.env` from `backend/.env.example` and fill in the real backend credentials. Do not commit `backend/.env`.
+
+Then build and start both application containers:
+
+```powershell
+docker compose up -d --build
+```
+
+This creates and starts:
+
+| Service | Container | Image | URL |
+| --- | --- | --- | --- |
+| Frontend | `lubristock-frontend` | `lubristock-frontend:dev` | `http://127.0.0.1:3000` |
+| Backend | `lubristock-backend` | `lubristock-backend:dev` | `http://127.0.0.1:8000` |
+
+The frontend uses two API URL settings. `NEXT_PUBLIC_API_URL` is embedded into browser code and must be reachable from the user's browser. `INTERNAL_API_URL` is used by server-rendered Next.js pages. In local Compose, it is `http://backend:8000/api/v1`; when frontend and backend are hosted separately, set both values to the backend's public URL. Neon PostgreSQL remains an external service and is read through `backend/.env`.
+
+Check the services:
+
+```powershell
+docker compose ps
+curl.exe http://127.0.0.1:8000/health
+```
+
+View logs or stop the project:
+
+```powershell
+docker compose logs -f frontend
+docker compose logs -f backend
+docker compose down
+```
+
+If only source files change, rebuild the affected service:
+
+```powershell
+docker compose up -d --build frontend
+docker compose up -d --build backend
+```
+
+If the public backend URL changes, rebuild the frontend because `NEXT_PUBLIC_API_URL` is included during the Next.js build. For separately hosted frontend and backend services, provide the backend public URL at build/runtime, configure backend CORS to allow the frontend origin, and ensure the backend is reachable over HTTPS.
+
 ## Database setup
 
-Run these commands from `backend/`. Apply migrations with:
+For Docker, run database migrations and seed commands inside the backend container from the repository root:
+
+```powershell
+docker compose exec backend alembic upgrade head
+docker compose exec backend python -m scripts.seed_cache
+docker compose exec backend python -m scripts.seed_stock
+```
+
+For non-Docker development, run these commands from `backend/`. Apply migrations with:
 
 ```powershell
 alembic upgrade head
