@@ -34,12 +34,16 @@ export function ProductGallery({ product, compact = false, modalLayout = false }
   }
 
   return (
-    <div className={modalLayout ? "contents md:flex md:flex-col md:gap-3" : "flex flex-col gap-3"}>
+    <div className={modalLayout ? "flex min-h-0 flex-col gap-1.5 md:gap-2" : "flex flex-col gap-3"}>
       {/* Main image */}
       <div
         className={`relative w-full bg-brand-bg overflow-hidden ${
-          compact ? "aspect-[4/3] max-md:max-h-44" : "aspect-square"
-        } ${modalLayout ? "max-md:col-span-2" : ""}`}
+          compact
+            ? modalLayout
+              ? "h-[clamp(140px,30dvh,280px)] md:h-[min(42vh,360px)]"
+              : "aspect-[4/3] max-md:max-h-44"
+            : "aspect-square"
+        } ${modalLayout ? "shrink-0" : ""}`}
       >
         <img
           src={available[selected].url!}
@@ -50,7 +54,7 @@ export function ProductGallery({ product, compact = false, modalLayout = false }
 
       {/* Thumbnails */}
       {available.length > 1 && (
-        <div className="flex flex-wrap md:flex-nowrap gap-1 md:gap-2 max-md:col-start-2 max-md:row-start-2 max-md:self-start">
+        <div className="flex flex-wrap gap-1 md:flex-nowrap md:gap-2">
           {available.map((img, i) => (
             <button
               key={i}

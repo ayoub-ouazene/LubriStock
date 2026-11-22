@@ -3,15 +3,15 @@
 // read it. All requests use credentials: "include" so the browser
 // attaches the cookie automatically.
 
-const API_URL =
-  typeof window === "undefined"
-    ? process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1"
-    : process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+let browserAccessToken: string | null = null;
 
 function getAdminApiUrl(): string {
-  if (typeof window === "undefined") return API_URL;
-
-  const url = new URL(API_URL);
+  const configured = typeof window === "undefined"
+    ? process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL
+    : process.env.NEXT_PUBLIC_API_URL;
+  if (!configured) throw new Error("An API URL is not configured");
+  const url = new URL(configured);
+  if (typeof window === "undefined") return url.toString().replace(/\/$/, "");
   const frontendHost = window.location.hostname;
   const loopbackHosts = new Set(["localhost", "127.0.0.1"]);
 
@@ -51,16 +51,18 @@ export async function apiAdminFetch<T = unknown>(
 
   const res = await fetch(url, {
     ...init,
+    // The backend sets the admin JWT as an httpOnly cookie. This option is
+    // required for cross-origin frontend/backend deployments.
     credentials: "include",
     headers: {
-      ...(init.body instanceof FormData
-        ? {}
-        : { "Content-Type": "application/json" }),
+      ...(init.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
+      ...(browserAccessToken ? { Authorization: `Bearer ${browserAccessToken}` } : {}),
       ...(init.headers ?? {}),
     },
   });
 
   if (res.status === 401) {
+    browserAccessToken = null;
     throw new AdminAuthError("Non authentifié.", 401);
   }
 
@@ -84,7 +86,7 @@ export async function login(
   username: string,
   password: string
 ): Promise<void> {
-  await apiAdminFetch<{
+  const result = await apiAdminFetch<{
     access_token: string;
     token_type: string;
     expires_in: number;
@@ -92,7 +94,9 @@ export async function login(
     method: "POST",
     body: JSON.stringify({ username, password }),
   });
-  // The token remains only in the httpOnly cookie. The JSON token is discarded.
+  // Keep the bearer only in memory for separately hosted deployments. The
+  // httpOnly cookie remains the preferred same-site transport.
+  browserAccessToken = result.access_token;
 }
 
 export async function logout(): Promise<void> {
@@ -102,6 +106,8 @@ export async function logout(): Promise<void> {
     });
   } catch {
     // Best effort: local auth state is still cleared by the provider.
+  } finally {
+    browserAccessToken = null;
   }
 }
 

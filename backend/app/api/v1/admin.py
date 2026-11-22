@@ -34,7 +34,7 @@ def login(payload: LoginRequest, response: Response) -> LoginResponse:
         max_age=expires_in,
         httponly=True,
         secure=settings.cookie_secure,
-        samesite="lax",
+        samesite=settings.cookie_samesite,
         path="/",
     )
 
@@ -54,7 +54,7 @@ def logout(response: Response) -> LogoutResponse:
         path="/",
         httponly=True,
         secure=settings.cookie_secure,
-        samesite="lax",
+        samesite=settings.cookie_samesite,
     )
     return LogoutResponse(ok=True)
 

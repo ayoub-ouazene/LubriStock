@@ -21,7 +21,6 @@ export function ProductModal({
 }) {
   const { addItem } = useCart();
   const [qty, setQty] = useState(1);
-  const hasTwoImages = Boolean(product.image_front_url && product.image_back_url);
 
   // Lock body scroll
   useEffect(() => {
@@ -43,11 +42,12 @@ export function ProductModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 backdrop-blur-sm sm:p-4"
+      role="presentation"
       onClick={onClose}
     >
       <div
-        className="relative bg-brand-surface max-w-4xl w-full max-h-[92vh] rounded-md overflow-y-auto md:overflow-hidden"
+        className="relative flex max-h-[calc(100dvh-1rem)] w-full max-w-4xl flex-col overflow-hidden rounded-md bg-brand-surface sm:max-h-[calc(100dvh-2rem)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}
@@ -60,36 +60,36 @@ export function ProductModal({
           <X size={18} strokeWidth={2} />
         </button>
 
-        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)] md:grid-cols-2 gap-x-3 gap-y-3 md:gap-6 p-3 md:p-5">
+        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)] gap-x-3 gap-y-2 overflow-hidden p-3 md:grid-cols-2 md:gap-5 md:p-5">
           {/* LEFT: gallery */}
-          <div className="contents md:block md:min-w-0">
+          <div className="col-span-2 min-w-0 md:col-span-1">
             <ProductGallery product={product} compact modalLayout />
           </div>
 
           {/* RIGHT: info */}
-          <div className={`flex min-w-0 flex-col md:h-full ${hasTwoImages ? "max-md:col-start-1 max-md:row-start-2" : "max-md:col-span-2"}`}>
+          <div className="col-span-2 flex min-w-0 flex-col md:col-span-1 md:h-full">
             <p className="text-xs uppercase tracking-wide text-brand-text-muted">
               {product.brand}
             </p>
-            <h2 className="text-base md:text-xl font-semibold text-brand-text mt-1">
+            <h2 className="mt-0.5 text-base font-semibold text-brand-text md:text-xl">
               {product.name}
             </h2>
 
             {product.in_stock ? (
-              <span className="inline-block self-start mt-3 text-xs px-2 py-0.5 border border-emerald-300 text-emerald-700 rounded">
+              <span className="mt-1 inline-block self-start rounded border border-emerald-300 px-2 py-0.5 text-xs text-emerald-700">
                 Disponible
               </span>
             ) : (
-              <span className="inline-block self-start mt-3 text-xs px-2 py-0.5 border border-brand-border text-brand-text-muted rounded">
+              <span className="mt-1 inline-block self-start rounded border border-brand-border px-2 py-0.5 text-xs text-brand-text-muted">
                 Rupture de stock
               </span>
             )}
 
-            <p className="text-lg md:text-2xl font-semibold text-brand-text mt-3">
+            <p className="mt-1.5 text-lg font-semibold text-brand-text md:text-2xl">
               {formatDA(product.price)}
             </p>
 
-            <dl className="hidden md:grid mt-4 border-t border-brand-border pt-3 grid-cols-2 gap-y-2 text-sm">
+            <dl className="hidden md:grid mt-3 grid-cols-2 gap-y-1.5 border-t border-brand-border pt-2 text-sm">
               <dt className="text-brand-text-muted">Viscosité</dt>
               <dd className="text-brand-text">{product.viscosity ?? "—"}</dd>
               <dt className="text-brand-text-muted">Conditionnement</dt>
@@ -98,7 +98,7 @@ export function ProductModal({
               <dd className="text-brand-text">{product.specification || "—"}</dd>
             </dl>
 
-            <div className="hidden md:block mt-auto pt-6">
+            <div className="hidden pt-3 md:mt-auto md:block">
               {/* Quantity selector */}
               <div className="flex items-center gap-3">
                 <span className="text-sm text-brand-text">Quantité</span>
@@ -140,7 +140,7 @@ export function ProductModal({
             </div>
           </div>
 
-          <dl className="col-span-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 border-t border-brand-border pt-2 text-xs break-words md:hidden">
+          <dl className="col-span-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5 border-t border-brand-border pt-1.5 text-xs break-words md:hidden">
             <dt className="text-brand-text-muted">Viscosité</dt>
             <dd className="text-brand-text">{product.viscosity ?? "—"}</dd>
             <dt className="text-brand-text-muted">Conditionnement</dt>
@@ -149,7 +149,7 @@ export function ProductModal({
             <dd className="min-w-0 text-brand-text">{product.specification || "—"}</dd>
           </dl>
 
-          <div className="col-span-2 border-t border-brand-border pt-2 md:hidden">
+          <div className="col-span-2 border-t border-brand-border pt-1.5 md:hidden">
             <div className="flex items-center gap-2">
               <span className="text-xs text-brand-text">Quantité</span>
               <div className="flex items-center border border-brand-border rounded-md">
@@ -191,3 +191,4 @@ export function ProductModal({
     </div>
   );
 }
+

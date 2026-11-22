@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { getBaseUrl } from "@/lib/api";
 import {
   ChatMessage,
   ChatProduct,
@@ -36,13 +37,10 @@ type ChatContextValue = {
 
 const ChatContext = createContext<ChatContextValue | null>(null);
 
-const API_URL =
-  typeof window === "undefined"
-    ? process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? ""
-    : process.env.NEXT_PUBLIC_API_URL ?? "";
+const apiUrl = (path: string) => new URL(path.replace(/^\/+/, ""), getBaseUrl()).toString();
 
 async function createSession(): Promise<SessionRecord> {
-  const res = await fetch(`${API_URL}/chat/session`, { method: "POST" });
+  const res = await fetch(apiUrl("/chat/session"), { method: "POST", credentials: "include" });
   if (!res.ok) throw new Error(`Session creation failed: ${res.status}`);
   const data = await res.json();
   const rec: SessionRecord = {
@@ -57,8 +55,9 @@ async function sendMessage(
   sessionId: string,
   text: string
 ): Promise<{ reply: string; products: ChatProduct[] }> {
-  const res = await fetch(`${API_URL}/chat/session/${sessionId}/message`, {
+  const res = await fetch(apiUrl(`/chat/session/${sessionId}/message`), {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message: text }),
   });
@@ -128,8 +127,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     const rec = loadSession();
     if (rec) {
       // Fire-and-forget. Do not block UI on the delete.
-      const url = `${API_URL}/chat/session/${rec.session_id}`;
-      fetch(url, { method: "DELETE" }).catch(() => {
+      fetch(apiUrl(`/chat/session/${rec.session_id}`), {
+        method: "DELETE",
+        credentials: "include",
+      }).catch(() => {
         // ignore — the session will expire on its own
       });
     }

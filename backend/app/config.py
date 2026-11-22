@@ -42,6 +42,7 @@ class Settings(BaseSettings):
 
     jwt_expire_minutes: int = Field(480, alias="JWT_EXPIRE_MINUTES")
     cookie_secure: bool = Field(False, alias="COOKIE_SECURE")
+    cookie_samesite: str = Field("lax", alias="COOKIE_SAMESITE")
 
 
     cloudinary_cloud_name: str = Field("", alias="CLOUDINARY_CLOUD_NAME")
@@ -67,7 +68,13 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins(self) -> list[str]:
-        return [o.strip() for o in self.cors_origins_raw.split(",") if o.strip()]
+        # Browsers send the origin without a trailing slash. Normalize values
+        # from environment files so `http://127.0.0.1:3000/` still matches.
+        return [
+            origin.strip().rstrip("/")
+            for origin in self.cors_origins_raw.split(",")
+            if origin.strip()
+        ]
 
 
 settings = Settings()

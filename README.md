@@ -151,7 +151,7 @@ docker compose up -d --build frontend
 docker compose up -d --build backend
 ```
 
-If the public backend URL changes, rebuild the frontend because `NEXT_PUBLIC_API_URL` is included during the Next.js build. For separately hosted frontend and backend services, provide the backend public URL at build/runtime, configure backend CORS to allow the frontend origin, and ensure the backend is reachable over HTTPS.
+If the public backend URL changes, rebuild the frontend because `NEXT_PUBLIC_API_URL` is included during the Next.js build. For separately hosted frontend and backend services, provide the backend public URL at build/runtime, configure backend CORS to allow the exact frontend origin, and ensure the backend is reachable over HTTPS. For cross-site admin cookies, set `COOKIE_SECURE=true` and `COOKIE_SAMESITE=none` in the backend; the frontend sends credentials and also keeps the login bearer in memory for the current tab (never localStorage).
 
 ## Database setup
 

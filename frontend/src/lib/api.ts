@@ -1,19 +1,32 @@
 import type { Product, ProductListParams, ProductListResponse } from "./types";
 
-function getBaseUrl(): string {
-  // Server-rendered pages run inside the frontend container, so they must
-  // reach the backend through the Compose service name. Browser requests run
-  // on the host and therefore use the publicly reachable host URL.
-  const url =
-    typeof window === "undefined"
-      ? process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL
-      : process.env.NEXT_PUBLIC_API_URL;
+export function getBaseUrl(): string {
+  // SSR uses the private network URL when available; browser code must use
+  // the public URL baked into the Next.js build.
+  const url = typeof window === "undefined"
+    ? process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL
+    : process.env.NEXT_PUBLIC_API_URL;
+  if (!url) throw new Error("An API URL is not configured");
+  return url.endsWith("/") ? url : `${url}/`;
+}
 
-  if (!url) {
-    throw new Error("An API URL is not configured");
+function resolveUrl(path: string): string {
+  const relativePath = path.replace(/^\/+/, "");
+  return new URL(relativePath, getBaseUrl()).toString();
+}
+
+export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const response = await fetch(resolveUrl(path), {
+    ...init,
+    credentials: "include",
+    cache: init.cache ?? "no-store",
+  });
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`API error ${response.status}: ${body}`);
   }
-  // Ensure trailing slash so that relative paths append correctly.
-  return url.endsWith("/") ? url : url + "/";
+  if (response.status === 204) return undefined as T;
+  return response.json() as Promise<T>;
 }
 
 export async function apiGet<T>(
@@ -39,13 +52,14 @@ export async function apiGet<T>(
     }
   }
 
-  const response = await fetch(url.toString(), { cache: "no-store" });
-
+  const response = await fetch(url.toString(), {
+    cache: "no-store",
+    credentials: "include",
+  });
   if (!response.ok) {
     const body = await response.text();
     throw new Error(`API error ${response.status}: ${body}`);
   }
-
   return response.json() as Promise<T>;
 }
 
@@ -61,17 +75,9 @@ export async function apiPost<T>(
   path: string,
   body: unknown
 ): Promise<T> {
-  const base = getBaseUrl();
-  const relativePath = path.startsWith("/") ? path.slice(1) : path;
-  const url = new URL(relativePath, base);
-  const res = await fetch(url.toString(), {
+  return apiRequest<T>(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`API error ${res.status}: ${text}`);
-  }
-  return res.json() as Promise<T>;
 }
