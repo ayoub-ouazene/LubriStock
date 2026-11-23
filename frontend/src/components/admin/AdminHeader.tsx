@@ -17,17 +17,20 @@ export function AdminHeader() {
   const navItems = [
     { href: "/admin", label: "Tableau de bord" },
     { href: "/admin/stock", label: "Stock" },
+    { href: "/admin/cache", label: "Spécifications" },
+    { href: "/admin/cache?category=engine", label: "Moteurs" },
+    { href: "/admin/cache?category=transmission", label: "Boîtes / transmissions" },
     { href: "/admin/orders", label: "Commandes" },
   ];
 
   return (
-    <header className="bg-brand-dark border-b border-brand-dark-light">
-      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <Link href="/admin" className="text-sm font-semibold text-white">
-            LubriStock — Admin
+    <header className="bg-brand-dark border-b border-brand-dark-light shadow-lg">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="flex min-w-0 items-center gap-6">
+          <Link href="/admin" className="text-sm font-bold tracking-wide text-white">
+            <span className="text-brand-orange">LUBRI</span>STOCK <span className="text-white/50">/ ADMIN</span>
           </Link>
-          <nav className="flex items-center gap-1">
+          <nav className="flex flex-wrap items-center gap-1">
             {navItems.map((item) => {
               const active =
                 item.href === "/admin"

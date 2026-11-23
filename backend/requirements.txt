@@ -32,3 +32,6 @@ alembic
 
 # Product image storage
 cloudinary
+
+# Test runner
+pytest

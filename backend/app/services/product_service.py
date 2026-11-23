@@ -1,7 +1,7 @@
 ﻿import hashlib
 import re
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 
 from app.config import settings
 
@@ -10,6 +10,8 @@ from app.db.models.tables import (
     Filter_Item,
     Oil_Engine_Item,
     Oil_Transmission_Item,
+    Oil_Engine_Cache,
+    Transmission_Oil_Cache,
 )
 from app.db.session import SessionLocal
 from app.core import cloudinary_client
@@ -333,6 +335,122 @@ def create_stock_item(category: str, data: dict) -> dict:
         session.refresh(row)
         return _serialize_admin(row, category)
 
+
+
+CACHE_MAP = {"engine": Oil_Engine_Cache, "transmission": Transmission_Oil_Cache}
+
+
+def _serialize_cache(row, category: str) -> dict:
+    return {"category": category, "id": row.id, "brand": row.brand, "model": row.model,
+            "start_year": row.start_year, "end_year": row.end_year,
+            "engine": getattr(row, "engine", None), "fuel_type": getattr(row, "fuel_type", None),
+            "gearbox": getattr(row, "gearbox", None), "transmission_type": getattr(row, "transmission_type", None),
+            "viscosity": row.viscosity, "capacity_liters": row.capacity_liters, "oem": row.oem}
+
+
+def list_cache_admin(category: str | None, q: str | None, page: int, page_size: int) -> dict:
+    categories = [category] if category else list(CACHE_MAP)
+    if any(c not in CACHE_MAP for c in categories):
+        raise ValueError("Unknown cache category")
+    rows = []
+    with SessionLocal() as session:
+        for cat in categories:
+            model = CACHE_MAP[cat]
+            stmt = select(model)
+            if q:
+                like = f"%{q.lower()}%"
+                stmt = stmt.where(or_(model.brand.ilike(like), model.model.ilike(like), model.oem.ilike(like)))
+            rows.extend(_serialize_cache(r, cat) for r in session.scalars(stmt).all())
+    rows.sort(key=lambda r: (r["brand"].lower(), r["model"].lower(), r["start_year"]))
+    total = len(rows); start = (page - 1) * page_size; end = start + page_size
+    return {"items": rows[start:end], "total": total, "page": page, "page_size": page_size, "has_next": end < total}
+
+
+def get_cache_item(category: str, record_id: int) -> dict | None:
+    if category not in CACHE_MAP: raise ValueError("Unknown cache category")
+    with SessionLocal() as session:
+        row = session.get(CACHE_MAP[category], record_id)
+        return _serialize_cache(row, category) if row else None
+
+
+def _validate_cache_data(category: str, data: dict) -> None:
+    if category not in CACHE_MAP:
+        raise ValueError("Unknown cache category")
+    start_year = data.get("start_year")
+    end_year = data.get("end_year")
+    if not isinstance(start_year, int) or not isinstance(end_year, int) or end_year < start_year:
+        raise ValueError("Invalid year range")
+    if start_year < 1886 or end_year > 2200:
+        raise ValueError("Invalid year range")
+    required = "engine" if category == "engine" else "gearbox"
+    if not str(data.get(required) or "").strip():
+        raise ValueError(f"{required} is required for {category} records")
+    if not str(data.get("brand") or "").strip() or not str(data.get("model") or "").strip():
+        raise ValueError("brand and model are required")
+    if not str(data.get("oem") or "").strip():
+        raise ValueError("oem is required")
+
+
+def _validate_cache_overlap(session, model, data, exclude_id=None):
+    # Vehicle identity is case-insensitive and intervals are inclusive: touching
+    # years overlap (e.g. 2018-2020 conflicts with 2020-2022).
+    stmt = select(model).where(
+        func.lower(model.brand) == data["brand"].strip().lower(),
+        func.lower(model.model) == data["model"].strip().lower(),
+        model.start_year <= data["end_year"],
+        model.end_year >= data["start_year"],
+    )
+    if exclude_id is not None:
+        stmt = stmt.where(model.id != exclude_id)
+    if session.scalars(stmt).first():
+        raise ValueError("Overlapping cache record already exists")
+
+
+def create_cache_item(category: str, data: dict) -> dict:
+    if category not in CACHE_MAP:
+        raise ValueError("Unknown cache category")
+    model = CACHE_MAP[category]
+    kwargs = {k: v for k, v in data.items() if k != "category" and hasattr(model, k)}
+    if category == "engine":
+        kwargs.setdefault("api_acea", "")
+    _validate_cache_data(category, kwargs)
+    with SessionLocal() as session:
+        _validate_cache_overlap(session, model, kwargs)
+        row = model(**kwargs)
+        session.add(row)
+        session.commit()
+        session.refresh(row)
+        return _serialize_cache(row, category)
+
+
+def update_cache_item(category: str, record_id: int, updates: dict) -> dict | None:
+    if category not in CACHE_MAP:
+        raise ValueError("Unknown cache category")
+    model = CACHE_MAP[category]
+    with SessionLocal() as session:
+        row = session.get(model, record_id)
+        if not row:
+            return None
+        data = {k: getattr(row, k) for k in ("brand", "model", "start_year", "end_year", "oem")}
+        data["engine"] = getattr(row, "engine", None)
+        data["gearbox"] = getattr(row, "gearbox", None)
+        data.update({k: v for k, v in updates.items() if hasattr(model, k)})
+        _validate_cache_data(category, data)
+        _validate_cache_overlap(session, model, data, record_id)
+        for k, v in updates.items():
+            if hasattr(model, k):
+                setattr(row, k, v)
+        session.commit()
+        session.refresh(row)
+        return _serialize_cache(row, category)
+
+
+def delete_cache_item(category: str, record_id: int) -> bool:
+    if category not in CACHE_MAP: raise ValueError("Unknown cache category")
+    with SessionLocal() as session:
+        row = session.get(CACHE_MAP[category], record_id)
+        if not row: return False
+        session.delete(row); session.commit(); return True
 
 
 def delete_stock_item(category: str, product_id: int) -> bool:

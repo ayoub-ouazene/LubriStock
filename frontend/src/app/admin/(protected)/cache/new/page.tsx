@@ -1,0 +1,7 @@
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAdminAuth } from "@/components/admin/AdminAuthProvider";
+import { createCache, CachePayload } from "@/lib/adminCache";
+import { CacheFields } from "@/components/admin/CacheForm";
+export default function NewCache() { const router = useRouter(); const { handleApiError } = useAdminAuth(); const [p, setP] = useState<Partial<CachePayload>>({ category: "engine" }); const [error, setError] = useState(""); const set = (k: string, v: string) => setP((x) => ({ ...x, [k]: k.includes("year") ? Number(v) : v })); const submit = async (e: React.FormEvent) => { e.preventDefault(); try { const r = await createCache(p as CachePayload); router.replace(`/admin/cache/${r.category}/${r.id}`); } catch (e) { setError(handleApiError(e) || "Erreur"); } }; return <form onSubmit={submit} className="mx-auto max-w-3xl px-4 py-8 sm:px-6"><div className="mb-6"><p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-orange">Référentiel véhicule</p><h1 className="mt-2 text-3xl font-bold">Nouvelle règle de cache</h1></div><div className="rounded-2xl border border-brand-border bg-brand-surface p-5 shadow-sm sm:p-7">{error && <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}<CacheFields value={p} onChange={set} /><button className="mt-6 rounded-xl bg-brand-orange px-5 py-3 font-bold text-white hover:bg-brand-orange-hover">Créer la règle</button></div></form>; }

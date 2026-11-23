@@ -55,6 +55,20 @@
   box-sizing: border-box;
 }
 
+.cache-field {
+  display: grid;
+  grid-template-columns: minmax(170px, 0.36fr) 1fr;
+  align-items: center;
+  gap: 1rem;
+}
+.cache-field label { font-size: 0.875rem; font-weight: 700; color: var(--color-brand-text); }
+.cache-field input, .cache-field select { width: 100%; border: 1px solid var(--color-brand-border); border-radius: 0.75rem; background: var(--color-brand-bg); padding: 0.7rem 0.8rem; outline: none; }
+.cache-field input:focus, .cache-field select:focus { border-color: var(--color-brand-orange); box-shadow: 0 0 0 3px rgb(255 85 0 / 0.12); }
+@media (max-width: 640px) {
+  .cache-field { grid-template-columns: 1fr; gap: 0.35rem; }
+}
+
+
 body {
   margin: 0;
   min-height: 100vh;

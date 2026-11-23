@@ -151,6 +151,42 @@ from app.schemas.admin import (
     AdminStockCreate,
 )
 from app.services import product_service
+from app.schemas.admin import AdminCacheRecord, AdminCacheListResponse, AdminCacheCreate, AdminCacheUpdate
+
+
+@router.get("/cache", response_model=AdminCacheListResponse, dependencies=[Depends(get_current_admin)])
+def list_cache(category: str | None = Query(None, pattern="^(engine|transmission)$"), q: str | None = Query(None, max_length=200), page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100)):
+    try: return product_service.list_cache_admin(category, q, page, page_size)
+    except ValueError as e: raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/cache/{category}/{record_id}", response_model=AdminCacheRecord, dependencies=[Depends(get_current_admin)])
+def get_cache(category: str, record_id: int):
+    try: result = product_service.get_cache_item(category, record_id)
+    except ValueError as e: raise HTTPException(status_code=400, detail=str(e))
+    if result is None: raise HTTPException(status_code=404, detail="Cache record not found.")
+    return result
+
+
+@router.post("/cache", response_model=AdminCacheRecord, status_code=201, dependencies=[Depends(get_current_admin)])
+def create_cache(payload: AdminCacheCreate):
+    try: return product_service.create_cache_item(payload.category, payload.model_dump())
+    except ValueError as e: raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.patch("/cache/{category}/{record_id}", response_model=AdminCacheRecord, dependencies=[Depends(get_current_admin)])
+def update_cache(category: str, record_id: int, payload: AdminCacheUpdate):
+    try: result = product_service.update_cache_item(category, record_id, payload.model_dump(exclude_unset=True))
+    except ValueError as e: raise HTTPException(status_code=400, detail=str(e))
+    if result is None: raise HTTPException(status_code=404, detail="Cache record not found.")
+    return result
+
+
+@router.delete("/cache/{category}/{record_id}", status_code=204, dependencies=[Depends(get_current_admin)])
+def delete_cache(category: str, record_id: int):
+    try: deleted = product_service.delete_cache_item(category, record_id)
+    except ValueError as e: raise HTTPException(status_code=400, detail=str(e))
+    if not deleted: raise HTTPException(status_code=404, detail="Cache record not found.")
 
 
 @router.get(
