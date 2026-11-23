@@ -1,0 +1,34 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: lubristock-backend:dev
+    container_name: lubristock-backend
+    env_file:
+      - ./backend/.env
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # The browser needs a URL reachable from the user's machine.
+        # Override PUBLIC_API_URL for staging/production deployments.
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:-http://127.0.0.1:8000/api/v1}
+    image: lubristock-frontend:dev
+    container_name: lubristock-frontend
+    environment:
+      # Server-rendered Next.js pages use the internal Compose URL locally.
+      # For separate hosting, set INTERNAL_API_URL to the backend URL reachable
+      # by the frontend server (or leave it equal to PUBLIC_API_URL).
+      INTERNAL_API_URL: ${INTERNAL_API_URL:-http://backend:8000/api/v1}
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
