@@ -122,9 +122,19 @@ export function ChatWidget() {
                   <ChatMessageBubble key={m.id} message={m} />
                 ))}
                 {isSending && (
-                  <p className="text-xs text-brand-text-muted animate-pulse">
-                    L&apos;assistant écrit…
-                  </p>
+                  <div
+                    className="flex items-center gap-2 text-xs text-brand-text-muted animate-pulse"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <span
+                      className="h-2 w-2 rounded-full bg-brand-orange"
+                      aria-hidden="true"
+                    />
+                    <span>
+                      Je recherche les spécifications adaptées à votre véhicule…
+                    </span>
+                  </div>
                 )}
                 {sessionExpired && (
                   <div className="border border-amber-300 bg-amber-50 text-amber-900 text-xs p-3 rounded-md">
